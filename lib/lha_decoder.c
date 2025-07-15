@@ -65,10 +65,13 @@ static const struct {
 	{ "-pm2-", &lha_pm2_decoder },
 };
 
-LHADecoder *lha_decoder_new(const LHADecoderType *dtype,
-                            LHADecoderCallback callback,
-                            void *callback_data,
-                            size_t stream_length)
+#undef lha_decoder_new
+
+// The "actual" lha_decoder_new; code gets #define-renamed to use this.
+LHADecoder *lha_decoder_new64(const LHADecoderType *dtype,
+                              LHADecoderCallback callback,
+                              void *callback_data,
+                              uint64_t stream_length)
 {
 	LHADecoder *decoder;
 	void *extra_data;
@@ -108,6 +111,17 @@ LHADecoder *lha_decoder_new(const LHADecoderType *dtype,
 	return decoder;
 }
 
+// This is the old version of lha_decoder_new, retained for ABI
+// compatibility purposes.
+LHADecoder *lha_decoder_new(const LHADecoderType *dtype,
+                            LHADecoderCallback callback,
+                            void *callback_data,
+                            size_t stream_length)
+{
+	return lha_decoder_new64(dtype, callback, callback_data,
+	                         stream_length);
+}
+
 const LHADecoderType *lha_decoder_for_name(const char *name)
 {
 	unsigned int i;
@@ -139,8 +153,8 @@ static void check_progress_callback(LHADecoder *decoder)
 {
 	unsigned int block;
 
-	block = (decoder->stream_pos + decoder->dtype->block_size - 1)
-	      / decoder->dtype->block_size;
+	block = (decoder->stream_pos + decoder->block_size - 1)
+	      / decoder->block_size;
 
 	// If the stream has advanced by another block, invoke the callback
 	// function. Invoke it multiple times if it has advanced by
@@ -161,9 +175,23 @@ void lha_decoder_monitor(LHADecoder *decoder,
 	decoder->progress_callback = callback;
 	decoder->progress_callback_data = callback_data;
 
+	// Usually, the block size we pass to the callback function is just
+	// the block size from the codec. However, for huge file sizes (100s
+	// of megabytes) we scale the block size up; this limits the number of
+	// blocks that we report to 128K. The reasons here are twofold:
+	// * Progress reporting shouldn't require any more detail than that
+	//   anyway; for a file gigabytes in size we don't need to report on
+	//   every single 4KiB block.
+	// * It ensures the block counts never overflow the 32-bit limit,
+	//   without needing an ABI change for the callback interface.
+	decoder->block_size = decoder->dtype->block_size;
+	while (decoder->stream_length / (128 * 1024) > decoder->block_size) {
+		decoder->block_size <<= 1;
+	}
+
 	decoder->total_blocks
-	  = (decoder->stream_length + decoder->dtype->block_size - 1)
-	  / decoder->dtype->block_size;
+	  = (decoder->stream_length + decoder->block_size - 1)
+	  / decoder->block_size;
 
 	check_progress_callback(decoder);
 }
@@ -251,7 +279,20 @@ uint16_t lha_decoder_get_crc(LHADecoder *decoder)
 	return decoder->crc;
 }
 
+#undef lha_decoder_get_length
+
+// This is the old version of lha_decoder_get_length, retained for ABI
+// compatibility purposes.
 size_t lha_decoder_get_length(LHADecoder *decoder)
+{
+	if (decoder->stream_pos > SIZE_MAX) {
+		return SIZE_MAX;
+	}
+	return decoder->stream_pos;
+}
+
+// The "actual" lha_decoder_get_length; code gets #define-renamed to use this.
+uint64_t lha_decoder_get_length64(LHADecoder *decoder)
 {
 	return decoder->stream_pos;
 }

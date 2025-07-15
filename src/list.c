@@ -32,8 +32,8 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 typedef struct {
 	unsigned int num_files;
-	unsigned int compressed_length;
-	unsigned int length;
+	uint64_t compressed_length;
+	uint64_t length;
 	unsigned int timestamp;
 } FileStatistics;
 
@@ -48,6 +48,9 @@ typedef struct {
 
 static const char *os_type_to_string(uint8_t os_type)
 {
+	// Note that the OS type string returned here should always be
+	// a single "word" (no spaces) to make output more consistent and
+	// easier to parse by higher-level programs.
 	switch (os_type) {
 		case LHA_OS_TYPE_MSDOS:
 			return "[MS-DOS]";
@@ -62,7 +65,8 @@ static const char *os_type_to_string(uint8_t os_type)
 		case LHA_OS_TYPE_CPM:
 			return "[CP/M]";
 		case LHA_OS_TYPE_MACOS:
-			return "[Mac OS]";
+			// Unix lha showed "Mac OS" (with space) here:
+			return "[MacOS]";
 		case LHA_OS_TYPE_JAVA:
 			return "[Java]";
 		case LHA_OS_TYPE_FLEX:
@@ -174,7 +178,11 @@ static void unix_uid_gid_column_print(LHAFileHeader *header)
 	if (LHA_FILE_HAVE_EXTRA(header, LHA_FILE_UNIX_UID_GID)) {
 		printf("%5i/%-5i", header->unix_uid, header->unix_gid);
 	} else {
-		printf("           ");
+		// Note: Original Unix lha shows whitespace here, but we
+		// instead print a dummy spacer word to be kinder to programs
+		// that parse our output (see Lhasa bug #59)
+		//printf("           ");
+		printf("*****/*****");
 	}
 }
 
@@ -200,12 +208,12 @@ static const ListColumn unix_uid_gid_column = {
 
 static void packed_column_print(LHAFileHeader *header)
 {
-	printf("%7lu", (unsigned long) header->compressed_length);
+	printf("%7" PRIu64, header->compressed_length);
 }
 
 static void packed_column_footer(FileStatistics *stats)
 {
-	printf("%7lu", (unsigned long) stats->compressed_length);
+	printf("%7" PRIu64, stats->compressed_length);
 }
 
 static const ListColumn packed_column = {
@@ -218,12 +226,12 @@ static const ListColumn packed_column = {
 
 static void size_column_print(LHAFileHeader *header)
 {
-	printf("%7lu", (unsigned long) header->length);
+	printf("%7" PRIu64, header->length);
 }
 
 static void size_column_footer(FileStatistics *stats)
 {
-	printf("%7lu", (unsigned long) stats->length);
+	printf("%7" PRIu64, stats->length);
 }
 
 static const ListColumn size_column = {
@@ -234,13 +242,22 @@ static const ListColumn size_column = {
 
 // Compression ratio
 
-static float compression_percent(size_t compressed, size_t uncompressed)
+static const char *compression_percent(size_t compressed, size_t uncompressed)
 {
+	static char buf[10];
+	int permille;
+
+	// We pessimistically round the compression ratio up to the next 0.1%,
+	// so that even if eg. a 10,000:1 ratio was achieved, it will be shown
+	// as "0.1%", not "0.0%". This is marginally more honest.
 	if (uncompressed > 0) {
-		return ((float) compressed * 100.0f) / (float) uncompressed;
+		permille = (compressed * 1000 + uncompressed - 1) / uncompressed;
 	} else {
-		return 100.0f;
+		permille = 1000;
 	}
+
+	snprintf(buf, sizeof(buf), "%3d.%1d%%", permille / 10, permille % 10);
+	return buf;
 }
 
 static void ratio_column_print(LHAFileHeader *header)
@@ -248,8 +265,8 @@ static void ratio_column_print(LHAFileHeader *header)
 	if (!strcmp(header->compress_method, "-lhd-")) {
 		printf("******");
 	} else {
-		printf("%5.1f%%", compression_percent(header->compressed_length,
-		                                      header->length));
+		printf("%s", compression_percent(header->compressed_length,
+		                                 header->length));
 	}
 }
 
@@ -258,8 +275,8 @@ static void ratio_column_footer(FileStatistics *stats)
 	if (stats->length == 0) {
 		printf("******");
 	} else {
-		printf("%5.1f%%", compression_percent(stats->compressed_length,
-		                                      stats->length));
+		printf("%s", compression_percent(stats->compressed_length,
+		                                 stats->length));
 	}
 }
 
@@ -316,7 +333,7 @@ static void output_timestamp(unsigned int timestamp)
 	time_t tmp;
 
 	if (timestamp == 0) {
-		printf("            ");
+		printf("*** ** *****");
 		return;
 	}
 
@@ -345,7 +362,7 @@ static void output_full_timestamp(unsigned int timestamp)
 	time_t tmp;
 
 	if (timestamp == 0) {
-		printf("                   ");
+		printf("********** ********");
 		return;
 	}
 
