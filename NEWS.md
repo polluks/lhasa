@@ -1,4 +1,4 @@
-## v0.5.0 (????-??-??):
+## v0.5.0 (2025-08-01):
 
  * The output from the list subcommands has been tweaked to be more
    consistent. This should help to avoid parsing bugs with
@@ -215,4 +215,4 @@ archive files found in the wild. The main missing features are:
 These are features that I aim to add in future releases. Other future
 features can be found in the TODO file.
 
-<!-- vim: tw=75 -->
+<!-- vim: set tw=75: -->
