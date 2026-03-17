@@ -29,7 +29,7 @@ test_dry_run() {
 	local expected=$3
 
 	if [ "$archive_file" != "-" ]; then
-		archive_file="archives/$archive_file"
+		archive_file="$test_base/archives/$archive_file"
 	fi
 
 	# Only check the last line of output:
@@ -60,9 +60,16 @@ test_archive() {
 
 	# Test the same, reading from stdin.
 
-	test_dry_run en - "EXTRACT $filename" < "archives/$archive_file"
-	test_dry_run tn - "VERIFY $filename" < "archives/$archive_file"
+	test_dry_run en - "EXTRACT $filename" \
+	    < "$test_base/archives/$archive_file"
+	test_dry_run tn - "VERIFY $filename" \
+	    < "$test_base/archives/$archive_file"
 }
+
+# We execute all tests from inside the temporary working directory generated
+# by the test_common.sh code. This ensures that test results are independent
+# of any random files that might be in the source tree.
+cd "$wd"
 
 # Tests for archives in the test set:
 
