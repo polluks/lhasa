@@ -35,6 +35,9 @@ static void print_header(LHAFileHeader *header)
 	if (header->filename != NULL) {
 		printf("filename: %s\n", header->filename);
 	}
+	if (LHA_FILE_HAVE_EXTRA(header, LHA_FILE_FAKE_NAME)) {
+		printf("fake_filename: true\n");
+	}
 	if (header->symlink_target != NULL) {
 		printf("symlink_target: %s\n", header->symlink_target);
 	}
