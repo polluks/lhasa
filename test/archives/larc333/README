@@ -11,6 +11,8 @@ subdir.lzs          - Archive containing subdirectories.
 initial.lzs         - Crafted -lz5- archive that dumps the full initial
                       contents of the history buffer from the start of
                       decompression. This archive is confirmed to work
-                      correctly with LArc v3.33 and various versions of
-                      LHA for DOS.
+                      correctly with LArc v3.33. However, there are some
+                      subtle differences in how later versions of LHarc
+                      and LHA handle the -lz5- algorithm, and as a result
+                      they do not extract it properly (see #66).
 
