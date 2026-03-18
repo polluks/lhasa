@@ -197,7 +197,10 @@ check_extracted_files() {
 	local archive_file=$1
 
 	get_file_data "$archive_file" | while read; do
-		check_extracted_file "$archive_file" "$REPLY"
+		# Zero-length filenames are ignored.
+		if [[ "$REPLY" != __unknown ]]; then
+			check_extracted_file "$archive_file" "$REPLY"
+		fi
 	done
 }
 

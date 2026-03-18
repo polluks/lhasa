@@ -41,6 +41,11 @@ test_archive generated/pm1/pm1.pma                          \
     "data_24.bin" "data_25.bin" "data_26.bin" "data_27.bin" \
     "data_28.bin" "data_29.bin" "data_30.bin" "data_31.bin"
 
+
+test_archive regression/empty_fn.lzh \
+    Picasso96Install/Picasso96/P96Speed/catalogs/deutsch/P96Speed.catalog \
+    Picasso96Install/Picasso96/P96Speed/Compare.dat
+
 # ======================================================================
 #
 # Special cases:
