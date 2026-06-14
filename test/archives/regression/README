@@ -46,3 +46,5 @@ dotdot.lzh          - Archive containing paths with '..'. This could be used
                       to break out of the extract directory and overwrite
                       arbitrary files on the filesystem.
 
+evil_pm2.lzh        - Archive that previously triggered an array overflow in
+                      the -pm2- decoder, reported in GHSA-j2m3-h278-rrg9.
